@@ -161,7 +161,8 @@
   (is (-> `apply-tx
           (st/check {:clojure.spec.test.check/opts {:num-tests 50}})
           first
-          (get-in [:clojure.spec.test.check/ret :result]))
+          (get-in [:clojure.spec.test.check/ret :result])
+          true?)
       "generative tests passed without errors"))
 
 (deftest example-test-found
