@@ -2,6 +2,7 @@
   (:require
     [clojure.pprint :refer [pprint]]
     [clojure.test :refer :all]
+    [clojure.spec.test.alpha :as st]
     [kerodon.test :as t]
     [kerodon.core :as k]
     [net.cgrand.enlive-html :as html]
@@ -12,17 +13,6 @@
     [stateful-testing.fsm-test-utils :as fsm]))
 
 ;;; DOM MANIPULATION FNS
-
-(defn get-ids
-  "scrape the list page for a list of ids present in the database"
-  [session]
-  (-> session
-      (k/visit "/list")
-      (t/has (t/status? 200))
-      :enlive
-      (html/select [:tr.board :a])
-      (->> (map :attrs)
-           (map :id))))
 
 (defn add
   [session type rating]
@@ -73,12 +63,12 @@
 
 ;;; TEST UTILS
 
-(s/def ::id (s/with-gen int? #(gen/choose 1 10)))
+(s/def ::id (s/with-gen int? #(gen/pos-int)))
 (s/def ::type #{:add-cmd :delete-cmd})
 (s/def ::board-type string?)
 (s/def ::board-rating string?)
 
-(defmulti command ::type)
+(defmulti command :type)
 (s/def ::command (s/multi-spec command ::type))
 
 (defmethod command :add-cmd
@@ -91,21 +81,16 @@
 
 (s/def ::commands-stateless (s/coll-of ::command :min-count 1))
 
-(defn apply-command
-  "apply a cmd to a running webapp using a Kerodon session"
-  [session cmd]
-  (case (:type cmd)
-    :add-cmd (add session (:board-type cmd) (:board-rating cmd))
-    :delete-cmd (delete session (:id cmd))))
-
 (def add-cmd
   (reify
     fsm/Command
-    (precondition [_ session] true)
-    (postcondition [_ session cmd] true)
-    (exec [_ session cmd]
-      (apply-command session cmd))
-    (generate [_ session]
+    (precondition [_ state] true)
+    (postcondition [_ state cmd] true)
+    (exec [_ state cmd]
+      (conj state (if (seq state)                           ; this emulates the db generating ids
+                    (inc (apply max state))
+                    1)))
+    (generate [_ state]
       (gen/fmap (partial zipmap [:type :board-type :board-rating])
                 (gen/tuple (gen/return :add-cmd)
                            gen/string
@@ -114,38 +99,45 @@
 (def delete-cmd
   (reify
     fsm/Command
-    (precondition [_ session]
+    (precondition [_ state]
       ; must be values present for a delete to be possible
-      (seq (get-ids session)))
-    (postcondition [_ session cmd]
-      ;;delete only valid if present in the scraped ids
-      (->> (get-ids session)
+      (seq state))
+    (postcondition [_ state cmd]
+      ;;delete only valid if present
+      (->> state
            (filter #(= % (:id cmd)))
            seq))
-    (exec [_ session cmd]
-      (apply-command session cmd))
-    (generate [_ session]
+    (exec [_ state cmd]
+      (->> state
+           (remove #(= % (:id cmd)))
+           set))
+    (generate [_ state]
       (gen/fmap (partial zipmap [:type :id])
                 (gen/tuple (gen/return :delete-cmd)
-                           (gen/elements (get-ids session)))))))
+                           (gen/elements state))))))
 
 (comment
+
+  ; TODO generator errors from multi-spec supplied generator. ignoring because using custom generator
   (s/exercise ::command 1)
-  (s/exercise ::commands-stateless 3)                       ; errors from multi-spec. ignoring
-  (let [db (atom {})
-        web-app (app/app db)
-        stateful-kerodon-session (k/session web-app)]
-    (gen/sample (fsm/cmd-seq stateful-kerodon-session {:add-cmd    add-cmd
-                                                       :delete-cmd delete-cmd})
-                3)))
+  (s/exercise ::commands-stateless 3)
+  (gen/sample (fsm/cmd-seq #{} {:add-cmd    add-cmd
+                                :delete-cmd delete-cmd})
+              3)
+  (s/exercise ::commands-stateless 3
+              {::commands-stateless #(fsm/cmd-seq #{} {:add-cmd    add-cmd
+                                                       :delete-cmd delete-cmd})}))
 
 (s/def ::commands-stateful (s/with-gen ::commands-stateless
-                                       (constantly
-                                         (let [db (atom {})
-                                               web-app (app/app db)
-                                               stateful-kerodon-session (k/session web-app)]
-                                           (fsm/cmd-seq stateful-kerodon-session {:add-cmd    add-cmd
-                                                                                  :delete-cmd delete-cmd})))))
+                                       #(fsm/cmd-seq #{} {:add-cmd    add-cmd
+                                                          :delete-cmd delete-cmd})))
+
+(defn apply-command
+  "apply a cmd to a running webapp using a Kerodon session"
+  [session cmd]
+  (case (:type cmd)
+    :add-cmd (add session (:board-type cmd) (:board-rating cmd))
+    :delete-cmd (delete session (:id cmd))))
 
 (defn apply-tx
   [tx-log]
@@ -157,9 +149,26 @@
                        tx-log)]
     (map? result)))
 (s/fdef apply-tx
-        :args (s/cat :tx-log ::commands-stateful))
+        :args (s/cat :tx-log ::commands-stateful)
+        :ret true?)
 
 (comment
-  (s/exercise ::commands-stateful 1)
+  (s/exercise ::commands-stateful 3)
   (s/exercise-fn `apply-tx 3)
-  (st/check `apply-tx {:clojure.spec.test.check/opts {:num-tests 100}}))
+  (st/check `apply-tx {:clojure.spec.test.check/opts {:num-tests 20}}))
+
+(deftest generative-and-stateful
+  (is (-> `apply-tx
+          (st/check {:clojure.spec.test.check/opts {:num-tests 50}})
+          first
+          (get-in [:clojure.spec.test.check/ret :result]))
+      "generative tests passed without errors"))
+
+(deftest example-test-found
+  #_(let [db (atom {})
+          session (k/session (app/app db))]
+      (reduce apply-command
+              session
+              [{:type :add-cmd, :board-type "", :board-rating ""}
+               {:type :add-cmd, :board-type "", :board-rating ""}
+               {:type :delete-cmd, :id 1}])))
