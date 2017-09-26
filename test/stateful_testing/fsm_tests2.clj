@@ -65,23 +65,23 @@
       (gen/fmap (partial zipmap [:type])
                 (gen/tuple (gen/return :clear-cmd))))))
 
-;;-----------------------------------------------------
-;;property definition
-
-(defn apply-tx
-  [tx-log]
+(defn apply-commands
+  [commands]
   (reduce (fn [ids {:keys [id type] :as cmd}]
             (case type
               :add-cmd (conj ids id)
-              :delete-cmd (set (remove #{id} ids))))
-          {:ids #{}}
-          tx-log))
+              :delete-cmd (set (remove #{id} ids))
+              :clear-cmd #{}))
+          #{}
+          commands))
 
-(def commands-consistent-apply
+(def commands-return-a-set
   (prop/for-all [tx-log (fsm/cmd-seq {:ids #{}} {:add-cmd    add-cmd
                                                  :delete-cmd delete-cmd
                                                  :clear-cmd  clear-cmd})]
-                (not (nil? (apply-tx tx-log)))))
+                (set? (apply-commands tx-log))))
 
 (deftest set-operations-pass
-  (is (:result (tc/quick-check 100 commands-consistent-apply))))
+  (let [result (tc/quick-check 100 commands-return-a-set)]
+    ;(pprint result)
+    (is (true? (:result result)))))

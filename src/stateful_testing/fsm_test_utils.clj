@@ -53,6 +53,7 @@
                                   (dec size)))))))
 
 (defn cmd-seq
+  "generate up to 5 stateful commands using a map of possible commands"
   [state commands]
   (gen/bind (gen/choose 0 5)
             (fn [num-elements]

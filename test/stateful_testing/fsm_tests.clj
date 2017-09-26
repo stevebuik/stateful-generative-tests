@@ -1,11 +1,13 @@
 (ns stateful-testing.fsm-tests
   (:require
+    [clojure.pprint :refer [pprint]]
     [clojure.test :refer :all]
     [clojure.test.check :as tc]
     [clojure.test.check.generators :as gen]
     [clojure.test.check.properties :as prop]
     [clojure.test.check.rose-tree :as rose]
-    [stateful-testing.fsm-test-utils :as fsm]))
+    [stateful-testing.fsm-test-utils :as fsm]
+    [clojure.spec.alpha :as s]))
 
 (def add-cmd
   (reify
@@ -57,20 +59,22 @@
                 (gen/tuple (gen/return :delete-cmd)
                            (gen/elements (mapv :id (:people state))))))))
 
-;;-----------------------------------------------------
-;;property definition
-
-(defn apply-tx
-  "Apply transactions fails when there are two delete commands"
-  [tx-log]
-  (->> tx-log
+(defn not-many-deletes
+  "returns true when there are < 2 delete commands"
+  [commands]
+  (->> commands
        (filter #(= :delete-cmd (:type %)))
        count
        (> 2)))
 
-(def commands-consistent-apply
-  (prop/for-all [tx-log (fsm/cmd-seq {:people []} {:add-cmd add-cmd :delete-cmd delete-cmd})]
-                (false (apply-tx tx-log))))
+(def commands-will-not-fail
+  (prop/for-all [commands (fsm/cmd-seq {:people []} {:add-cmd    add-cmd
+                                                     :delete-cmd delete-cmd})]
+                (true? (not-many-deletes commands))))
 
-(deftest apply-commands
-  (is (:result (tc/quick-check 100 commands-consistent-apply))))
+
+(deftest apply-commands-fails
+  (let [result (tc/quick-check 100 commands-will-not-fail)]
+    ;(pprint result) ; <<<<< uncomment this to see the failing case
+    (is (-> result :result false?)
+        "commands fail because generator will eventually generate 2 deletes")))

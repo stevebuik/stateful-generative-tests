@@ -75,11 +75,11 @@
 ;;-----------------------------------------------------
 ;;property definition
 
-(defn apply-tx
-  [tx-log]
+(defn apply-commands
+  [commands]
   (reduce apply-command
           {:ids #{}}
-          tx-log))
+          commands))
 
 (comment
   (gen/sample (fsm/cmd-seq {:ids #{}} {:add-cmd    add-cmd
@@ -88,10 +88,10 @@
               3))
 
 (def commands-consistent-apply
-  (prop/for-all [tx-log (fsm/cmd-seq {:ids #{}} {:add-cmd    add-cmd
-                                                 :delete-cmd delete-cmd
-                                                 :clear-cmd  clear-cmd})]
-                (not (nil? (apply-tx tx-log)))))
+  (prop/for-all [commands (fsm/cmd-seq {:ids #{}} {:add-cmd    add-cmd
+                                                   :delete-cmd delete-cmd
+                                                   :clear-cmd  clear-cmd})]
+                (set? (:ids (apply-commands commands)))))
 
 (deftest set-operations-pass
-  (is (:result (tc/quick-check 100 commands-consistent-apply))))
+  (is (true? (:result (tc/quick-check 100 commands-consistent-apply)))))

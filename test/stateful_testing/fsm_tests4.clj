@@ -80,18 +80,22 @@
   (s/exercise ::commands-stateless 3)
   (s/exercise ::commands-stateful 3))
 
-(defn apply-tx
-  [tx-log]
+(defn apply-commands
+  [commands]
   (let [result (reduce apply-command
                        {:ids #{}}
-                       tx-log)]
+                       commands)]
     (map? result)))
-(s/fdef apply-tx
-        :args (s/cat :tx-log ::commands-stateful))
+(s/fdef apply-commands
+        :args (s/cat :tx-log ::commands-stateful)
+        :ret true?)
 
 (comment
-  (s/exercise-fn `apply-tx 3)
-  (st/check `apply-tx {:clojure.spec.test.check/opts {:num-tests 100}}))
+  (s/exercise-fn `apply-commands 3)
+  (st/check `apply-commands {:clojure.spec.test.check/opts {:num-tests 100}}))
 
 (deftest set-operations-pass
-  (is (get-in (first (st/check `apply-tx)) [:clojure.spec.test.check/ret :result])))
+  (let [result (st/check `apply-commands)]
+    ;(pprint result)
+    (is (true? (get-in (first result) [:clojure.spec.test.check/ret :result]))
+        "stateful generative tests all succeeded")))
