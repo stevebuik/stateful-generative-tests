@@ -112,9 +112,7 @@
            (filter #(= % (:id cmd)))
            seq))
     (exec [_ state cmd]
-      (->> state
-           (remove #(= % (:id cmd)))
-           set))
+      (disj state (:id cmd)))
     (generate [_ state]
       (gen/fmap (partial zipmap [:type :id])
                 (gen/tuple (gen/return :delete-cmd)

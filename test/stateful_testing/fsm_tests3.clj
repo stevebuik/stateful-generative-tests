@@ -14,7 +14,7 @@
              (fn [ids]
                (case (:type cmd)
                  :add-cmd (conj ids (:id cmd))
-                 :delete-cmd (set (remove #{(:id cmd)} ids))
+                 :delete-cmd (disj ids (:id cmd))
                  :clear-cmd #{}))))
 
 (def add-cmd

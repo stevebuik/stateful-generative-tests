@@ -40,9 +40,7 @@
 
     (exec [_ state cmd]
       (update-in state [:ids] (fn [ids]
-                                (->> ids
-                                     (remove #{(:id cmd)})
-                                     set))))
+                                (disj ids (:id cmd)))))
 
     (generate [_ state]
       (gen/fmap (partial zipmap [:type :id])
