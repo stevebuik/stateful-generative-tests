@@ -120,6 +120,22 @@ The solution was to go back to two systems for state, one for each phase.
 When this test is run, the number of assertions is high. This is because every CRUD operation asserts that status = 200 etc when the command is applied.
 This is the power of generative tests, many combinations generated, applied and asserted.
 
+### Conclusions
+
+Although there are two good libraries for stateful testing, I prefer the blog posts solution because the generated commands are pure data (no fns as values).
+This makes them easier to read, easier to send over a wire for remote invocation and the code could easily be portable (cljc).
+
+The combination of Kerodon and generated commands is a Selenium killer. Happy days!
+That said, there is no browser so Selenium is better if you are seeking cross-browser testing.
+
+This testing technique replaces test.check with Specs and test.check underneath.
+The amount of code is approx the same but, with Specs, you also have command DSL that can be used for other purposes
+e.g.
+* runtime request validation
+* remote command(s) execution
+
+These are powerful benefits so testing this way is a valuable investment.
+
 ### Future
 
 * A server endpoint could accept an EDN sequence of commands and run them as a live test i.e. generative Selenium
