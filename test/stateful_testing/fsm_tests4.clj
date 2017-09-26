@@ -82,6 +82,7 @@
 
 (defn apply-commands
   [commands]
+  ;(pprint commands)
   (let [result (reduce apply-command
                        {:ids #{}}
                        commands)]
