@@ -111,6 +111,7 @@ and observe....
 * Add commands don't include an :id since the webapp generates the id
 * Use a multi-spec since now commands have different keys
 * Using a spec'd driver fn, like in Experiment #5
+* The :ret spec for the driver fn is a map, allowing N assertions with a clear path to false values
 * It's fast! Even running 50 generated command sequences is sub-second.
 
 Originally I used the web-app for the generation and the application phase.

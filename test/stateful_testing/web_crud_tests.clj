@@ -153,10 +153,13 @@
         result (reduce apply-command
                        stateful-kerodon-session
                        commands)]
-    (map? result)))
+    {:atom-is-map      (map? @db)                           ; state atom not corrupted
+     :last-response-ok (= 200 (get-in result [:response :status])) ; the final cmd in the seq was OK
+     :cmds             (pos-int? (count commands))          ; at least 1 cmd was applied
+     }))
 (s/fdef apply-commands
         :args (s/cat :cmds ::commands-stateful)
-        :ret true?)
+        :ret (s/map-of keyword? true?))
 
 (comment
   (s/exercise ::commands-stateful 3)
