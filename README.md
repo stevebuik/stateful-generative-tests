@@ -40,18 +40,19 @@ https://github.com/czan/stateful-check
 Thanks to all these people for sharing such valuable work. It inspired this presentation.
 
 The blog post provides a great explanation and sample code for stateful testing.
-It could even be written as portable (cljc) Clojure - sweet!
+It could even be written as portable (cljc) Clojure - sweet! It would be great to see tests running in this readme.
+
 In particular, the section on shrinking and Rose Trees is really interesting.
 
 Stu's video demonstrates the idea of generator models to make Spec generators smarter.
-Maybe using the code from the blog as a spec model could work?
+Maybe using the code from the blog as a spec model could work? Let's try.
 
 ### To the REPL....
 
 (follow the links and/or run the tests in your IDE)
 
 [Experiment #1](https://github.com/stevebuik/stateful-generative-tests/blob/master/test/stateful_testing/states_lib_tests.clj)
-: run the sample code for the *state* library.
+: run the sample code for the *states* library.
 
 Works well but is not portable Clojure. Leaving this path alone for now.
 
@@ -67,7 +68,7 @@ this means that the generation state system is different from the state of the s
 * Clojure Spec is not used anywhere (because the blog was written before Spec)
 
 [Experiment #3](https://github.com/stevebuik/stateful-generative-tests/blob/master/test/stateful_testing/fsm_tests2.clj)
-: changed the FSM sample to test a set instead of vector
+: changed the FSM sample to test a set (like the *states* test) instead of vector
 
 * added a :clear-cmd for emptying the set
 * still have different code for gen vs application phase
@@ -120,6 +121,6 @@ This can form the basis for a real world test suite.
 
 * A server endpoint could accept an EDN sequence of commands and run them as a live test i.e. generative Selenium
 * Single Page Apps are stateful and can be tested the same way (see the Teleport video for more)
-
+* Convert Set tests to portable Clojure and run using Klipse
 
 
