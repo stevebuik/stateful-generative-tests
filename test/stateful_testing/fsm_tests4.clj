@@ -63,7 +63,7 @@
 
 (s/def ::id (s/with-gen int? #(gen/choose 1 10)))
 (s/def ::type #{:add-cmd :delete-cmd :clear-cmd})
-(s/def ::command (s/or :add (s/keys :req-un [::id ::type])))
+(s/def ::command (s/keys :req-un [::id ::type]))
 (s/def ::commands-stateless (s/coll-of ::command :min-count 1))
 (s/def ::commands-stateful (s/with-gen ::commands-stateless
                                        (constantly
