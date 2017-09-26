@@ -12,6 +12,8 @@ Look at [web-crud.clj](https://github.com/stevebuik/stateful-generative-tests/bl
 
 Look at [web-crud-tests.clj](https://github.com/stevebuik/stateful-generative-tests/blob/master/test/stateful_testing/web_crud_tests.clj) to see how to use generated commands to test Add/Delete in the webapp.
 
+This test combines Kerodon, Clojure Spec and custom generators to generate valid sequences of *commands* for a web-app.
+
 ## The Long Version.....
 
 Generative testing reduces the need for example-based unit tests.
@@ -42,7 +44,7 @@ Thanks to all these people for sharing such valuable work. It inspired this pres
 The blog post provides a great explanation and sample code for stateful testing.
 It could even be written as portable (cljc) Clojure - sweet! It would be great to see tests running in this readme.
 
-In particular, the section on shrinking and Rose Trees is really interesting.
+In the blog post, the section on shrinking and Rose Trees is really interesting.
 
 Stu's video demonstrates the idea of generator models to make Spec generators smarter.
 Maybe using the code from the blog as a spec model could work? Let's try.
@@ -115,7 +117,8 @@ Originally I used the web-app for the generation and the application phase.
 This did not work because each generated command sequence retained state from previous sequences.
 The solution was to go back to two systems for state, one for each phase.
 
-This can form the basis for a real world test suite.
+When this test is run, the number of assertions is high. This is because every CRUD operation asserts that status = 200 etc when the command is applied.
+This is the power of generative tests, many combinations generated, applied and asserted.
 
 ### Future
 
